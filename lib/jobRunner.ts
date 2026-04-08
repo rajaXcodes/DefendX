@@ -5,7 +5,7 @@ import { fetchLogs } from "./loki";
 import { runAnalysis } from "./agent";
 import { notifySlack, createJiraTicket, sendEmailReport } from "./remediation";
 import { JobState } from "../core/stateMachine";
-import { ActionType, Domain } from "../generated/prisma/enums";
+import { ActionType, Domain, Severity } from "../generated/prisma/enums";
 
 const DOMAINS = ["http", "infra", "auth"] as const;
 
@@ -61,9 +61,9 @@ export async function runJob(windowMinutes = 60) {
         data: findings.map((f) => ({
             jobId,
             findingId: f.finding_id,
-            domain: f.domain,
+            domain: f.domain as Domain,
             classification: f.classification,
-            severity: f.severity,
+            severity: f.severity as Severity,
             confidence: f.confidence,
             offender: f.offender,
             metrics: f.metrics,
