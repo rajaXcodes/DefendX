@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Base URL
-BASE_URL="https://serverless.on-demand.io/apps/getdata"
+BASE_URL="http://localhost:3000"
 
 # Get current timestamp in nanoseconds
 # Now adjusted to stay within 15 minutes (0-14 minutes ago)
@@ -28,7 +28,7 @@ echo "========================================"
 
 # Test 1: Brute Force Attack Pattern
 echo "1. Injecting Brute Force Attack Pattern..."
-curl -X POST "${BASE_URL}/push_logs" \
+curl -X POST "${BASE_URL}/pushLogs" \
   -H "Content-Type: application/json" \
   -d "{
     \"streams\": [

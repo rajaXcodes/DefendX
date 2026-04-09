@@ -2,6 +2,18 @@ import { lokiClient } from "../config";
 
 const LOKI_URL = process.env.LOKI_URL!;
 
+export async function pushLogs(streams: any[]) {
+    if (!streams || !Array.isArray(streams))
+        throw new Error("streams array is required");
+
+    try {
+        await lokiClient.post(`/loki/api/v1/push`, { streams });
+    } catch (err: any) {
+        console.error("Failed to push logs:", err.message);
+        throw err;
+    }
+}
+
 // Returns raw log lines
 export async function fetchLogs(
     limit: number = 1000,
@@ -20,7 +32,7 @@ export async function fetchLogs(
     const to = now;
 
     try {
-        const response = await lokiClient.get(`${LOKI_URL}/loki/api/v1/query_range`, {
+        const response = await lokiClient.get(`/loki/api/v1/query_range`, {
             params: {
                 query,
                 start: from,
@@ -29,6 +41,8 @@ export async function fetchLogs(
                 direction: forward ? "FORWARD" : "BACKWARD",
             },
         });
+
+        console.log("📦 Loki Raw Result Count:", response.data?.data?.result?.length);
 
         const streams = response.data?.data?.result || [];
 

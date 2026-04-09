@@ -1,12 +1,23 @@
 import { Router } from "express";
 import { prisma } from "../lib/db";
 import { runJob } from "../lib/jobRunner";
+import { pushLogs } from "../lib/loki";
 
 export const router = Router();
 
+router.post("/pushLogs", async (req, res) => {
+    const { stream } = req.body;
+    try {
+        await pushLogs(stream);
+        res.json({ status: "success", ingested_streams: stream.length });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to push logs" });
+    }
+})
+
 // ── Trigger a new analysis job ──────────────────────────────────────────────
 router.post("/jobs/trigger", async (req, res) => {
-    const { windowMinutes = 60 } = req.body;
+    const { windowMinutes = 10 } = req.body;
     // Fire and forget — client tracks progress via WebSocket
     runJob(windowMinutes).catch(console.error);
     res.json({ message: "Job triggered" });
