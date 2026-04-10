@@ -8,6 +8,9 @@ const app = express();
 const server = http.createServer(app);
 
 app.use(express.json());
+app.get("/", (req, res) => {
+    return res.send("DefendX API are running healthy...");
+})
 app.use("/api", router);
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
