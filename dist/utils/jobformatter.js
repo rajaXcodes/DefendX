@@ -1,6 +1,5 @@
 import { convertBigIntToTime } from "./timeFormatter.js";
-
-export function formatJobsBatch(jobs: any[], format: "iso" | "locale" = "iso") {
+export function formatJobsBatch(jobs, format = "iso") {
     return jobs.map((job) => ({
         ...job,
         windowFrom: convertBigIntToTime(job.windowFrom, format),

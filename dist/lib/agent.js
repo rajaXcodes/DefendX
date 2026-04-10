@@ -1,38 +1,4 @@
 import { commanderClient, OPENROUTER_MODEL } from "../config/index.js";
-
-export interface AgentFinding {
-    finding_id: string;
-    domain: "identity" | "http" | "infrastructure";
-    classification: string;
-    severity: "low" | "medium" | "high" | "critical";
-    confidence: number;
-    context: { service: string; app: string; environment: string };
-    offender: { type: "ip" | "user" | "token" | "service"; value: string };
-    metrics: {
-        event_count: number;
-        unique_targets: number;
-        success_count: number;
-        failure_count: number;
-    };
-    time_window: { from: number; to: number };
-    evidence_samples: string[];
-    summary: string;
-    recommended_action: string;
-}
-
-export interface AgentOutput {
-    execution_id: string;
-    analyzed_time_window: { from: number; to: number };
-    metadata: {
-        commander_version: string;
-        analysis_type: string;
-        log_sources: string[];
-        total_logs_analyzed: number;
-    };
-    findings: AgentFinding[];
-    soc_report: string;
-}
-
 const SYSTEM_PROMPT = `You are DefendX Commander, an autonomous security analyst. 
 Your task is to analyze provided raw log data, correlate events, and generate actionable security findings based on strict detection standards.
 
@@ -87,20 +53,12 @@ Structure:
 ### Technical Details
 ### Risk Assessment
 ### Recommendations`;
-
-export async function runAnalysis(
-    logs: Record<string, string[]>,
-    windowFrom: number,
-    windowTo: number,
-    environment: string = "production"
-): Promise<AgentOutput> {
+export async function runAnalysis(logs, windowFrom, windowTo, environment = "production") {
     // 1. Prepare Log Text
     const logText = Object.entries(logs)
         .map(([domain, lines]) => `### ${domain.toUpperCase()} DOMAIN LOGS ###\n${lines.join("\n")}`)
         .join("\n\n");
-
     const executionId = `exec-${Date.now()}`;
-
     // 2. Build the prompt with context
     const userMessage = `
 EXECUTION METADATA:
@@ -116,7 +74,6 @@ INSTRUCTIONS:
 2. Apply detection thresholds exactly.
 3. If no incidents found, return "findings": [].
 4. Do not hallucinate IPs; use values found in the text.`;
-
     const { data } = await commanderClient.post("/chat/completions", {
         model: OPENROUTER_MODEL,
         messages: [
@@ -125,19 +82,17 @@ INSTRUCTIONS:
         ],
         temperature: 0, // Ensure deterministic analysis
     });
-
-    const raw: string = data.choices[0].message.content;
+    const raw = data.choices[0].message.content;
     const parts = raw.split("---SECTION_B---");
-
     if (parts.length < 2) {
         throw new Error("LLM failed to provide the required delimiter between JSON and Report.");
     }
-
     try {
         const parsed = JSON.parse(parts[0].trim());
         parsed.soc_report = parts[1].trim();
-        return parsed as AgentOutput;
-    } catch (error) {
+        return parsed;
+    }
+    catch (error) {
         console.error("Failed to parse Agent Output. Raw response:", raw);
         throw new Error("Invalid JSON format from LLM");
     }

@@ -1,0 +1,9 @@
+export function convertBigIntToTime(value, format = "iso") {
+    if (!value)
+        return null;
+    const date = new Date(Number(value));
+    if (format === "locale") {
+        return date.toLocaleString(); // UI friendly
+    }
+    return date.toISOString(); // API standard
+}
