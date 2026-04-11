@@ -275,7 +275,7 @@ function buildRemediationSteps(findings: any[]): RemediationStep[] {
                 actionType: "block_ip",
                 description: `Block offender ${f.offender.value}`
             });
-            break;
+            // break;
         }
 
         // RATE LIMIT cases
