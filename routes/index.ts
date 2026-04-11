@@ -30,7 +30,7 @@ router.get("/jobs/:jobId", async (req, res) => {
         include: { findings: true, actions: true, report: true, domainStats: true },
     });
     if (!job) return res.status(404).json({ error: "Not found" });
-    res.json(job);
+    res.json(jsonSafe(job));
 });
 
 function jsonSafe<T>(value: T): T {
