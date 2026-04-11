@@ -64,9 +64,33 @@ export async function runJob(windowMinutes = 60) {
     // ── 4. Persist findings ─────────────────────────────────────────────────
     const findings = agentOutput.findings ?? [];
 
-    if (findings.length > 0) {
-        await prisma.finding.createMany({
-            data: findings.map((f) => ({
+    // if (findings.length > 0) {
+    //     await prisma.finding.createMany({
+    //         data: findings.map((f) => ({
+    //             jobId,
+    //             findingId: f.finding_id,
+    //             domain: f.domain as Domain,
+    //             classification: f.classification,
+    //             severity: f.severity as Severity,
+    //             confidence: f.confidence,
+    //             offender: f.offender,
+    //             metrics: f.metrics,
+    //             timeWindowFrom: BigInt(f.time_window.from),
+    //             timeWindowTo: BigInt(f.time_window.to),
+    //             evidenceSamples: f.evidence_samples,
+    //             summary: f.summary,
+    //             context: f.context,
+    //         })),
+    //     });
+    // }//last fix 
+    console.log("Findings count:", findings.length);
+
+    const findingIdMap = new Map<string, string>();
+
+if (findings.length > 0) {
+    for (const f of findings) {
+        const created = await prisma.finding.create({
+            data: {
                 jobId,
                 findingId: f.finding_id,
                 domain: f.domain as Domain,
@@ -80,9 +104,12 @@ export async function runJob(windowMinutes = 60) {
                 evidenceSamples: f.evidence_samples,
                 summary: f.summary,
                 context: f.context,
-            })),
+            },
         });
+
+        findingIdMap.set(f.finding_id, created.id); // 🔥 CRITICAL
     }
+}
 
     console.log(`✅ [PHASE 4 COMPLETE] Findings stored`);
 
@@ -118,16 +145,34 @@ export async function runJob(windowMinutes = 60) {
             status: "PLANNED"
         });
 
-        const action = await prisma.action.create({
-            data: {
-                jobId,
-                findingId: step.findingId,
-                domain: step.domain as Domain,
-                actionType: step.actionType as ActionType,
-                description: step.description,
-                status: "IN_PROGRESS",
-            },
-        });
+        // const action = await prisma.action.create({
+        //     data: {
+        //         jobId,
+        //         findingId: step.findingId,
+        //         domain: step.domain as Domain,
+        //         actionType: step.actionType as ActionType,
+        //         description: step.description,
+        //         status: "IN_PROGRESS",
+        //     },
+        // });//last fix 
+
+        const dbFindingId = findingIdMap.get(step.findingId);
+
+if (!dbFindingId) {
+    console.error("❌ Finding not found in DB for:", step.findingId);
+    continue;
+}
+
+const action = await prisma.action.create({
+    data: {
+        jobId,
+        findingId: dbFindingId, // ✅ FIXED
+        domain: step.domain as Domain,
+        actionType: step.actionType as ActionType,
+        description: step.description,
+        status: "IN_PROGRESS",
+    },
+});
         try {
 
             const finding = findings.find(
