@@ -118,10 +118,22 @@ export async function runJob(windowMinutes = 60) {
             status: "PLANNED"
         });
 
+        const dbFinding = await prisma.finding.findFirst({
+            where: {
+                findingId: step.findingId,
+                jobId,
+            },
+        });
+
+        if (!dbFinding) {
+            console.error("❌ Finding not found in DB for:", step.findingId);
+            continue;
+        }
+
         const action = await prisma.action.create({
             data: {
                 jobId,
-                findingId: step.findingId,
+                findingId: dbFinding.id, // ✅ FIX
                 domain: step.domain as Domain,
                 actionType: step.actionType as ActionType,
                 description: step.description,
@@ -129,7 +141,18 @@ export async function runJob(windowMinutes = 60) {
             },
         });
 
-       
+        // const action = await prisma.action.create({
+        //     data: {
+        //         jobId,
+        //         findingId: step.findingId,
+        //         domain: step.domain as Domain,
+        //         actionType: step.actionType as ActionType,
+        //         description: step.description,
+        //         status: "IN_PROGRESS",
+        //     },
+        // });
+
+
         try {
 
             const finding = findings.find(

@@ -122,4 +122,5 @@ enum ActionType {
   rate_limit
   alert_soc
   manual_review
+  allocate_resources
 }
