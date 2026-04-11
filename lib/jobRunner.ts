@@ -107,6 +107,17 @@ export async function runJob(windowMinutes = 60) {
     console.log(`⚙️ [REMEDIATION] Actions planned: ${remediationSteps.length}`);
 
     for (const step of remediationSteps) {
+
+        const stepId = uuid();
+        emitState(jobId, JobState.REMEDIATING, {
+            stepId,
+            findingId: step.findingId,
+            actionType: step.actionType,
+            domain: step.domain,
+            target: step.offender,
+            status: "PLANNED"
+        });
+
         const action = await prisma.action.create({
             data: {
                 jobId,
@@ -123,11 +134,30 @@ export async function runJob(windowMinutes = 60) {
                 (f) => f.finding_id === step.findingId
             );
 
-            await executeAction(step, finding);
+            emitState(jobId, JobState.REMEDIATING, {
+                stepId,
+                findingId: step.findingId,
+                actionType: step.actionType,
+                status: "IN_PROGRESS"
+            });
+
+            const result = await executeAction(step, finding);
 
             await prisma.action.update({
                 where: { id: action.id },
                 data: { status: "DONE", completedAt: new Date() },
+            });
+
+
+            emitState(jobId, JobState.REMEDIATING, {
+                stepId,
+                findingId: step.findingId,
+                actionType: step.actionType,
+                status: "DONE",
+                metadata: {
+                    message: "Action executed successfully",
+                    result
+                }
             });
 
         } catch (err) {
@@ -135,6 +165,20 @@ export async function runJob(windowMinutes = 60) {
                 where: { id: action.id },
                 data: { status: "FAILED" }
             });
+
+
+            emitState(jobId, JobState.REMEDIATING, {
+                stepId,
+                findingId: step.findingId,
+                actionType: step.actionType,
+                status: "FAILED",
+                metadata: {
+                    message: "Action execution failed",
+                    error: err
+                }
+            });
+
+
         }
 
     }
@@ -210,33 +254,6 @@ interface RemediationStep {
     offender?: string;
 }
 
-// function buildRemediationSteps(findings: any[]): RemediationStep[] {
-//     const steps: RemediationStep[] = [];
-
-//     for (const f of findings) {
-//         switch (f.classification) {
-//             case "brute_force":
-//                 steps.push({ findingId: f.finding_id, domain: f.domain, actionType: "block_ip", description: `Block offender ${f.offender.value} (brute force on ${f.domain})` });
-//                 steps.push({ findingId: f.finding_id, domain: f.domain, actionType: "alert_soc", description: `Alert SOC for finding ${f.finding_id}` });
-//                 break;
-//             case "resource_exhaustion":
-//                 steps.push({ findingId: f.finding_id, domain: f.domain, actionType: "rate_limit", description: `Apply rate-limit for ${f.offender.value} on ${f.domain}` });
-//                 break;
-//             case "port_scan":
-//                 steps.push({ findingId: f.finding_id, domain: f.domain, actionType: "block_ip", description: `Block scanner ${f.offender.value}` });
-//                 break;
-//             default:
-//                 steps.push({ findingId: f.finding_id, domain: f.domain, actionType: "alert_soc", description: `Manual review needed for ${f.finding_id}` });
-//         }
-//     }
-
-//     return steps;
-// }
-
-
-
-
-
 function buildRemediationSteps(findings: any[]): RemediationStep[] {
     const steps: RemediationStep[] = [];
 
@@ -300,11 +317,6 @@ function buildRemediationSteps(findings: any[]): RemediationStep[] {
 
     return steps;
 }
-// async function executeAction(step: RemediationStep) {
-//     // Wire real firewall / rate-limiter calls here.
-//     // For now resolves immediately — replace with actual integrations.
-//     return Promise.resolve();
-// }
 
 async function executeAction(step: RemediationStep, finding: any) {
 
