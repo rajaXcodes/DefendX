@@ -38,7 +38,7 @@ Your task is to analyze provided raw log data, correlate events, and generate ac
 
 ### DETECTION STANDARDS & THRESHOLDS
 
-1. IDENTITY DOMAIN:
+1. AUTH DOMAIN:
    - Brute Force: 5+ failed auth from same IP/5min. (11-20=HIGH, 20+=CRITICAL).
    - Credential Stuffing: 5+ different users, same IP, failed auth/10min. (Always HIGH+).
    - Session Hijacking: Same session ID seen from 2+ different IPs. (Always HIGH).
@@ -48,7 +48,7 @@ Your task is to analyze provided raw log data, correlate events, and generate ac
    - SQLi/Path Traversal: Any string containing "SELECT", "UNION", or "../". (Always HIGH).
    - Resource Exhaustion: 500+ req/min from a single IP. (CRITICAL if service crashes).
 
-3. INFRASTRUCTURE DOMAIN:
+3. INFRA DOMAIN:
    - Service Crash: Any "restart" or "panic" within 5min of errors. (Always HIGH).
    - Resource Stress: CPU >90% or Memory >95% for 3+ minutes.
 
@@ -62,8 +62,8 @@ SECTION A: A JSON object. No markdown fences.
   "metadata": { "commander_version": "2.0", "analysis_type": "batch", "log_sources": [], "total_logs_analyzed": 0 },
   "findings": [
     {
-      "finding_id": "exec-id-001",
-      "domain": "identity|http|infrastructure",
+      "finding_id": "<Must be a unique valid v4 UUID, e.g., 'f47ac10b-58cc-4372-a567-0e02b2c3d479'>",
+      "domain": "auth|http|infra",
       "classification": "...",
       "severity": "low|medium|high|critical",
       "confidence": 0.0-1.0,
@@ -73,7 +73,7 @@ SECTION A: A JSON object. No markdown fences.
       "time_window": { "from": <ms>, "to": <ms> },
       "evidence_samples": ["actual log lines max 100 chars"],
       "summary": "...",
-      "recommended_action": "..."
+      "recommended_action": "... (CRITICAL Note: NEVER include the exact phrases 'increase memory' or 'service crash' in this string)"
     }
   ]
 }
